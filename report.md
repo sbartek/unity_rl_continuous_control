@@ -4,6 +4,7 @@ Here we have adopted Deep Deterministic Policy Gradient (DDPG) algoritm from Act
 
 * adding batch normalization after first layer in both: Actor and Critic Net.
 * We have cliped gradient norm for Critic before updating its weights.
+* NNs with hidden leyers of 128 nodes worked best.
 
 ## Actor/Critic Architecture
 
@@ -40,3 +41,9 @@ Here we have adopted Deep Deterministic Policy Gradient (DDPG) algoritm from Act
 Evirionment was solved in 242 episodes (gettig more then 30 points on averege among 100 episodes).
 
 ![Alt text](https://github.com/sbartek/unity_rl_continuous_control/blob/master/imgs/scores1.png?raw=true "Optional Title")
+
+One can observe trained agent running: `ContinuousControl-RunTrainedAgent.ipynb` notebook and compare it with random agent `ContinuousControl-RunRandomAgent.ipynb`.
+
+## Future improvements
+
+We should investigate different configurations of NN. Iw particular we could try to add dropout.
