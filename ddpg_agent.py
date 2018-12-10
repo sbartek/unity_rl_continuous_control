@@ -9,15 +9,14 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-# hyperparameters
 BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 128        # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
-LR_ACTOR = 1e-3         # learning rate of the actor 
-LR_CRITIC = 1e-3        # learning rate of the critic
+LR_ACTOR = 2e-4         # learning rate of the actor 
+LR_CRITIC = 2e-4        # learning rate of the critic
 WEIGHT_DECAY = 0        # L2 weight decay
-
+NOISE_SIGMA = 0.03      # Noise's sigma parameter
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Agent():
@@ -40,17 +39,27 @@ class Agent():
         self.actor_local = Actor(state_size, action_size, random_seed).to(device)
         self.actor_target = Actor(state_size, action_size, random_seed).to(device)
         self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR)
+        print(self.actor_local)
 
         # Critic Network (w/ Target Network)
         self.critic_local = Critic(state_size, action_size, random_seed).to(device)
         self.critic_target = Critic(state_size, action_size, random_seed).to(device)
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
+        print(self.critic_local)
+        
+        self.hard_copy_weights(self.actor_target, self.actor_local)
+        self.hard_copy_weights(self.critic_target, self.critic_local)
 
         # Noise process
         self.noise = OUNoise(action_size, random_seed)
 
         # Replay memory
         self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, random_seed)
+    
+    def hard_copy_weights(self, target, source):
+        """ copy weights from source to target network (part of initialization)"""
+        for target_param, param in zip(target.parameters(), source.parameters()):
+            target_param.data.copy_(param.data)
     
     def step(self, state, action, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
@@ -102,6 +111,7 @@ class Agent():
         # Minimize the loss
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)
         self.critic_optimizer.step()
 
         # ---------------------------- update actor ---------------------------- #
@@ -130,7 +140,6 @@ class Agent():
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
 
-            
     def load_checkpoints(self):
         self.actor_local.load_checkpoint()
         self.actor_target.load_checkpoint()
@@ -139,13 +148,13 @@ class Agent():
         self.critic_target.load_checkpoint()
         
     def save_checkpoints(self):
-        self.actor_target.save_checkpoint()
-        self.critic_target.save_checkpoint()
+        self.actor_local.save_checkpoint()
+        self.critic_local.save_checkpoint()
         
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
 
-    def __init__(self, size, seed, mu=0., theta=0.15, sigma=0.2):
+    def __init__(self, size, seed, mu=0., theta=0.15, sigma=NOISE_SIGMA):
         """Initialize parameters and noise process."""
         self.mu = mu * np.ones(size)
         self.theta = theta

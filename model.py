@@ -24,10 +24,7 @@ class ModuleWithCheckpoints(nn.Module):
 class Actor(ModuleWithCheckpoints):
     """Actor (Policy) Model."""
 
-    def __init__(
-        self, 
-        state_size, action_size, seed, 
-        fc1_units=128, fc2_units=128, 
+    def __init__(self, state_size, action_size, seed=0, fc1_units=128, fc2_units=128, 
         checkpoint_fn="actor_checkpoint.pth"):
         """Initialize parameters and build model.
         Params
@@ -40,13 +37,13 @@ class Actor(ModuleWithCheckpoints):
         """
         super().__init__(checkpoint_fn)
         self.seed = torch.manual_seed(seed)
-        self.bn1 = nn.BatchNorm1d(state_size)
+        self.bn0 = nn.BatchNorm1d(state_size)
         self.fc1 = nn.Linear(state_size, fc1_units)
-        self.bn2 = nn.BatchNorm1d(fc1_units)
-        self.fc2 = nn.Linear(fc1_units, fc2_units)      
-        self.fc3 = nn.Linear(fc2_units, action_size)
+        self.bn1 = nn.BatchNorm1d(fc1_units)
+        self.fc2 = nn.Linear(fc1_units, fc2_units)
+        self.bn2 = nn.BatchNorm1d(fc2_units)
+        self.fc3 = nn.Linear(fc2_units, action_size)    
         self.reset_parameters()
-        print(self)
 
     def reset_parameters(self):
         self.fc1.weight.data.uniform_(*hidden_init(self.fc1))
@@ -55,18 +52,17 @@ class Actor(ModuleWithCheckpoints):
 
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
-        x = self.bn1(state)
+        x = torch.unsqueeze(state,0) if state.dim() == 1 else state
+        #x = self.bn0(x)
         x = F.relu(self.fc1(x))
-        #x = self.bn2(x)
+        x = self.bn1(x)
         x = F.relu(self.fc2(x))
-        
         return F.tanh(self.fc3(x))
-
 
 class Critic(ModuleWithCheckpoints):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, seed, fcs1_units=128, fc2_units=128, 
+    def __init__(self, state_size, action_size, seed=0, fcs1_units=128, fc2_units=128, 
         checkpoint_fn="critic_checkpoint.pth"):
         """Initialize parameters and build model.
         Params
@@ -79,13 +75,13 @@ class Critic(ModuleWithCheckpoints):
         """
         super().__init__(checkpoint_fn)
         self.seed = torch.manual_seed(seed)
-        self.bn1 = nn.BatchNorm1d(state_size)
-        self.fcs1 = nn.Linear(state_size, fcs1_units)  
-        self.bn2 = nn.BatchNorm1d(fcs1_units)
-        self.fc2 = nn.Linear(fcs1_units+action_size, fc2_units)    
-        self.fc3 = nn.Linear(fc2_units, 1)
+        self.bn0 = nn.BatchNorm1d(state_size)
+        self.fcs1 = nn.Linear(state_size, fcs1_units)
+        self.bn1 = nn.BatchNorm1d(fcs1_units)
+        self.fc2 = nn.Linear(fcs1_units+action_size, fc2_units)
+        self.bn2 = nn.BatchNorm1d(fc2_units)
+        self.fc3 = nn.Linear(fc2_units, 1)   
         self.reset_parameters()
-        print(self)
 
     def reset_parameters(self):
         self.fcs1.weight.data.uniform_(*hidden_init(self.fcs1))
@@ -94,9 +90,10 @@ class Critic(ModuleWithCheckpoints):
 
     def forward(self, state, action):
         """Build a critic (value) network that maps (state, action) pairs -> Q-values."""
-        xs = self.bn1(state)
+        xs = torch.unsqueeze(state,0) if state.dim() == 1 else state
+        #xs = self.bn0(xs)
         xs = F.relu(self.fcs1(xs))
-        #xs = self.bn2(xs)
-        x = torch.cat((xs, action), dim=1)  
+        xs = self.bn1(xs)
+        x = torch.cat((xs, action), dim=1)
         x = F.relu(self.fc2(x))
         return self.fc3(x)
