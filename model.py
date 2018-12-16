@@ -24,7 +24,7 @@ class ModuleWithCheckpoints(nn.Module):
 class Actor(ModuleWithCheckpoints):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, seed=0, fc1_units=128, fc2_units=256, 
+    def __init__(self, state_size, action_size, seed=0, fc1_units=128, fc2_units=128, 
         checkpoint_fn="actor_checkpoint.pth"):
         """Initialize parameters and build model.
         Params
@@ -62,7 +62,7 @@ class Actor(ModuleWithCheckpoints):
 class Critic(ModuleWithCheckpoints):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, seed=0, fcs1_units=128, fc2_units=256, 
+    def __init__(self, state_size, action_size, seed=0, fcs1_units=128, fc2_units=128, 
         checkpoint_fn="critic_checkpoint.pth"):
         """Initialize parameters and build model.
         Params
